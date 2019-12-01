@@ -30,14 +30,13 @@ class JsonDto implements DtoInterface
      * @param object $object
      *
      * @return string
+     * @throws DtoException
      * @throws ReflectionException
      */
     public function encode($object): string
     {
         $data = $this->schemaObjectToArray($object);
-
-        var_dump(json_encode($data));
-        return '';
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -47,6 +46,7 @@ class JsonDto implements DtoInterface
      * @param array $unfields
      *
      * @return array
+     * @throws DtoException
      * @throws ReflectionException
      */
     private function schemaObjectToArray($object, array $fields = [], array $unfields = []): array
@@ -61,9 +61,11 @@ class JsonDto implements DtoInterface
             }
 
             $schemaAnnotation = $schemaProps[$propName];
-            $reflectProperty  = new ReflectionProperty($className, $propName);
-            $propType         = ObjectHelper::getPropertyBaseType($reflectProperty);
-            $propValue        = $this->getValueByGetter($object, $propName, $propValue);
+
+
+            $reflectProperty = new ReflectionProperty($className, $propName);
+            $propType        = ObjectHelper::getPropertyBaseType($reflectProperty, true);
+            $propValue       = $this->getValueByGetter($object, $propName, $propValue);
 
             // ApiProperty
             if ($schemaAnnotation instanceof ApiProperty) {
@@ -76,7 +78,7 @@ class JsonDto implements DtoInterface
                 continue;
             }
 
-            // ApiPropertyEntity
+            // ApiPropertySchema
             if ($schemaAnnotation instanceof ApiPropertySchema) {
                 $name = $schemaAnnotation->getName();
                 if (!$this->isFields($name, $fields, $unfields)) {
@@ -100,19 +102,21 @@ class JsonDto implements DtoInterface
                 $aFields   = $schemaAnnotation->getFields();
                 $aUnfields = $schemaAnnotation->getUnfields();
 
-                if (!empty($propType) && !($propValue instanceof $propType)) {
-                    throw new DtoException(
-                        sprintf('%s property value is not instanceof %s', $propName, $propType)
-                    );
-                }
-
-                if (is_array($propValue)) {
+                // Array
+                if ($propType == 'array') {
                     $entityObjects = [];
                     foreach ($propValue as $propObj) {
                         $entityObjects[] = $this->entityObjectToArray($propObj, $aFields, $aUnfields);
                     }
                     $data[$name] = $entityObjects;
                     continue;
+                }
+
+                // Not object instance
+                if (!empty($propType) && !($propValue instanceof $propType)) {
+                    throw new DtoException(
+                        sprintf('%s property value is not instanceof %s', $propName, $propType)
+                    );
                 }
 
                 $data[$name] = $this->entityObjectToArray($propValue, $aFields, $aUnfields);

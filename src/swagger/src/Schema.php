@@ -25,6 +25,12 @@ abstract class Schema
     {
         $self = self::__instance();
         foreach ($properties as $property => $value) {
+            $setterMethod = sprintf('setter%s', ucfirst($property));
+            if (method_exists($self, $setterMethod)) {
+                $self->{$setterMethod}($value);
+                return $self;
+            }
+
             if (!property_exists($self, $property)) {
                 throw new InvalidArgumentException('Schema args is not exist!');
             }

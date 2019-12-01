@@ -38,6 +38,7 @@ use Swoft\Validator\Annotation\Mapping\IsInt;
 use Swoft\Validator\Annotation\Mapping\IsString;
 use Swoft\Validator\ValidateRegister;
 use Swoft\Validator\ValidatorRegister;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Class Swagger
@@ -74,16 +75,6 @@ class Swagger
     private $schemaDefinitions = [];
 
     /**
-     * @var string
-     */
-    private $type = self::JSON;
-
-    /**
-     * @var string
-     */
-    private $file = '@base/doc/swagger.json';
-
-    /**
      * Init
      */
     public function init(): void
@@ -92,16 +83,45 @@ class Swagger
     }
 
     /**
+     * To json
+     *
+     * @param int|null $flags
+     *
+     * @return string
      * @throws ReflectionException
      * @throws SwaggerException
      */
-    public function gen(): void
+    public function toJson(int $flags = null): string
     {
         $openapi = $this->createRootNode();
-        $json    = $openapi->toJson();
+        return $openapi->toJson($flags);
+    }
 
-        if ($this->type == self::JSON) {
-            file_put_contents('/Users/stelin/swoft/swoft/resource/dist/doc/swagger.json', $json);
+    /**
+     * @return string
+     * @throws ReflectionException
+     * @throws SwaggerException
+     */
+    public function toYaml(): string
+    {
+        $json = $this->toJson();
+        $data = json_decode($json);
+        return Yaml::dump($data, 10, 2, Yaml::DUMP_OBJECT_AS_MAP ^ Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
+    }
+
+    /**
+     * @param string $type
+     * @param string $file
+     *
+     * @throws ReflectionException
+     * @throws SwaggerException
+     */
+    public function gen(string $type, string $file): void
+    {
+        $file = alias($file);
+        $json = $this->toJson();
+        if ($type == self::JSON) {
+            file_put_contents(alias($file), $json);
             return;
         }
     }
@@ -119,7 +139,11 @@ class Swagger
         $components = $this->createComponentsNode();
 
         $openApi = new OpenApi();
-        $openApi->setInfo($info);
+
+        if (!empty($info)) {
+            $openApi->setInfo($info);
+        }
+
         $openApi->setServers($servers);
         $openApi->setPaths($paths);
         $openApi->setComponents($components);
@@ -477,15 +501,23 @@ class Swagger
     /**
      * @return Info
      */
-    private function createInfoNode(): Info
+    private function createInfoNode(): ?Info
     {
         $contract = ApiRegister::getContract();
         $license  = ApiRegister::getLicense();
 
         $info = ApiRegister::getInfo();
-        $info->setContact($contract);
-        $info->setLicense($license);
+        if (empty($info)) {
+            return null;
+        }
 
+        if (!empty($contract)) {
+            $info->setContact($contract);
+        }
+
+        if (!empty($license)) {
+            $info->setLicense($license);
+        }
         return $info;
     }
 

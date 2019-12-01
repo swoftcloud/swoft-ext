@@ -78,11 +78,17 @@ class OpenApi extends Node
     }
 
     /**
+     * @param int $flags
+     *
      * @return string
      */
-    public function toJson(): string
+    public function toJson(int $flags = null): string
     {
-        return JsonHelper::encode($this, JSON_UNESCAPED_UNICODE);
+        if ($flags === null) {
+            $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        }
+
+        return JsonHelper::encode($this, $flags);
     }
 
     /**
