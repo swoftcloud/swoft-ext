@@ -1,14 +1,11 @@
 <?php declare(strict_types=1);
-
 namespace Swoft\Elasticsearch;
-
 use Exception;
 use Swoft\Elasticsearch\Connection\Connection;
 use Swoft\Elasticsearch\Connection\ConnectionInstance;
 use Swoft\Elasticsearch\Connection\ConnectionManager;
 use Swoft\Elasticsearch\Exception\ElasticsearchException;
 use Swoft\Bean\BeanFactory;
-
 /**
  * Class Elasticsearch
  *
@@ -153,7 +150,6 @@ use Swoft\Bean\BeanFactory;
  */
 class Elasticsearch
 {
-
     /**
      * connection
      *
@@ -166,13 +162,11 @@ class Elasticsearch
     {
         try {
             /** @var ConnectionManager $manager */
-            $manager = BeanFactory::getBean(ConnectionManager::class);
-
+            $manager = bean(ConnectionManager::class);
             /** @var Pool $elasticsearchPool */
-            $elasticsearchPool = BeanFactory::getBean($pool);
+            $elasticsearchPool = bean($pool);
             /** @var Connection $connection */
             $connection = $elasticsearchPool->getConnection();
-
             $connection->setRelease(true);
             $manager->setConnection($connection);
         } catch (Exception $e) {
@@ -180,10 +174,8 @@ class Elasticsearch
                 sprintf('Pool error is %s file=%s line=%d', $e->getMessage(), $e->getFile(), $e->getLine())
             );
         }
-
         return $connection->getInstance();
     }
-
     /**
      * __callStatic
      *
@@ -197,8 +189,6 @@ class Elasticsearch
     {
         /** @var ConnectionInstance $instance */
         $instance = self::connection();
-
         return $instance->$name(...$arguments);
     }
-
 }
